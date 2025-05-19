@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
+    "gadgetzone-server": "file:",
     "mongodb": "^6.16.0"
   }
 }
