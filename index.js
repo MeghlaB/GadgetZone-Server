@@ -4,12 +4,16 @@ const port = process.env.PORT || 5000;
 const cors = require("cors");
 require("dotenv").config();
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
+
+
 const { MongoClient, ServerApiVersion } = require("mongodb");
-const uri =
-  "mongodb+srv://e-commerce:xdO1nyHPbK5hFF4b@cluster0.t97zyjb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.u2fu7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -26,6 +30,7 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db("Ecommerce").collection("users");
+    const productsCollection = client.db("Ecommerce").collection("products");
 
     // users post collection api
     app.post("/users", async (req, res) => {
@@ -44,7 +49,22 @@ async function run() {
     // user get collection api
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
-  console.log(result);
+      console.log(result);
+      res.send(result);
+    });
+
+    // products post collection api
+    app.post("/add-products", async (req, res) => {
+      const productsData = req.body;
+      const result = await productsCollection.insertOne(productsData);
+      console.log(result);
+      res.send(result);
+    });
+
+    // product get collection api
+    app.get("/products", async (req, res) => {
+      const result = await productsCollection.find().toArray();
+      console.log(result);
       res.send(result);
     });
 
