@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 5000;
+const SSLCommerzPayment = require("sslcommerz-lts");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -25,6 +26,11 @@ const client = new MongoClient(uri, {
   },
 });
 
+// .........Bikash-payment-gatway..........
+const store_id = process.env.STORE_ID;
+const store_passwd = process.env.STORE_PASS;
+const is_live = false; //true for live, false for sandbox
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -32,7 +38,7 @@ async function run() {
 
     const usersCollection = client.db("Ecommerce").collection("users");
     const productsCollection = client.db("Ecommerce").collection("products");
-
+    const oderCollection = client.db("Ecommerce").collection("oders");
     // users post collection api
     app.post("/users", async (req, res) => {
       const userData = req.body;
@@ -60,23 +66,23 @@ async function run() {
       res.send({ admin: user?.role === "admin" });
     });
 
-     app.get('/users/seller/:email', async (req, res) => {
+    app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
       // console.log('Decoded email:', req.decoded?.email);
       // console.log('Request email:', email);
       // if (!req.decoded || email !== req.decoded.email) {
       //   return res.status(403).send({ message: 'Forbidden access' });
       // }
-    
+
       const query = { email: email };
       const user = await usersCollection.findOne(query);
-    
+
       let seller = false;
       if (user) {
-       seller = user.role === 'seller';
+        seller = user.role === "seller";
       }
-    
-      res.send({ seller});
+
+      res.send({ seller });
     });
 
     // products post collection api
@@ -109,6 +115,85 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await productsCollection.deleteOne(query);
       res.send(result);
+    });
+
+    //..........oders
+
+    const tran_id = new ObjectId().toString();
+
+    app.post("/oders", async (req, res) => {
+      const product = await productsCollection.findOne({
+        _id: new ObjectId(req.body.productID),
+      });
+      const oder = req.body;
+
+      const data = {
+        total_amount: product?.price,
+        currency: oder?.currency,
+        tran_id: tran_id,
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: "http://localhost:3030/fail",
+        cancel_url: "http://localhost:3030/cancel",
+        ipn_url: "http://localhost:3030/ipn",
+        shipping_method: "Courier",
+        product_name: product?.category,
+        product_category: "Electronic",
+        product_profile: "general",
+        cus_name: oder?.name,
+        cus_email: "customer@example.com",
+        cus_add1: oder?.address,
+        cus_add2: "Dhaka",
+        cus_city: "Dhaka",
+        cus_state: "Dhaka",
+        cus_postcode: "1000",
+        cus_country: "Bangladesh",
+        cus_phone: oder?.phone,
+        cus_fax: "01711111111",
+        ship_name: "Customer Name",
+        ship_add1: "Dhaka",
+        ship_add2: "Dhaka",
+        ship_city: "Dhaka",
+        ship_state: "Dhaka",
+        ship_postcode: 1000,
+        ship_country: "Bangladesh",
+      };
+
+      console.log(data);
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      sslcz.init(data).then((apiResponse) => {
+        const GatewayPageURL = apiResponse.GatewayPageURL;
+
+       
+        const finalOrder = {
+          product,
+          paidStatus: false,
+          transjectionId: tran_id,
+        };
+        oderCollection.insertOne(finalOrder);
+
+        res.send({ url: GatewayPageURL });
+        console.log("Redirecting to: ", GatewayPageURL);
+      });
+    });
+
+    app.post("/payment/success/:tranId", async (req, res) => {
+      console.log(req.params.tranId);
+      const result = await oderCollection.updateOne(
+        { transjectionId: req.params.tranId },
+        {
+          $set: {
+            paidStatus: true,
+          },
+        }
+      );
+
+      if (result.modifiedCount > 0) {
+        res.redirect(
+          `http://localhost:5173/payment/success/${req.params.tranId}`
+        );
+      } else {
+        res.status(400).send("Payment success, but order not updated.");
+      }
     });
 
     // Send a ping to confirm a successful connection
