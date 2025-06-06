@@ -39,6 +39,8 @@ async function run() {
     const usersCollection = client.db("Ecommerce").collection("users");
     const productsCollection = client.db("Ecommerce").collection("products");
     const oderCollection = client.db("Ecommerce").collection("oders");
+    const cartCollection = client.db("Ecommerce").collection("carts");
+
     // users post collection api
     app.post("/users", async (req, res) => {
       const userData = req.body;
@@ -163,7 +165,6 @@ async function run() {
       sslcz.init(data).then((apiResponse) => {
         const GatewayPageURL = apiResponse.GatewayPageURL;
 
-       
         const finalOrder = {
           product,
           paidStatus: false,
@@ -193,6 +194,39 @@ async function run() {
         );
       } else {
         res.status(400).send("Payment success, but order not updated.");
+      }
+    });
+
+    // ......ADD TO CART.....
+    app.post("/cart", async (req, res) => {
+      const items = req.body;
+      const result = await cartCollection.insertOne(items);
+      res.send(result);
+    });
+
+    app.get("/all-carts", async (req, res) => {
+      const allItems = req.body;
+      const result = await cartCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/carts", async (req, res) => {
+      const email = req.query.email;
+
+      if (!email) {
+        return res
+          .status(400)
+          .send({ message: "Email query parameter is required" });
+      }
+
+      try {
+        const result = await cartCollection
+          .find({ userEmail: email })
+          .toArray();
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to fetch cart items" });
       }
     });
 
