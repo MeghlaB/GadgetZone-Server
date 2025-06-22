@@ -230,6 +230,79 @@ async function run() {
       }
     });
 
+
+    // ..............user,admin,seller profile api...............
+app.get('/users/profile/:email',async(req,res)=>{
+  try{
+    const email = req.params.email;
+    const query= {email:email}
+    const user = await usersCollection.findOne(query)
+    if(user){
+      res.send(user)
+    }
+    else{
+      res.status(404).send({message:'user is not data found '})
+    }
+  }catch(error){
+    res.status(500).send({message:'Error fetching user profile',error})
+  }
+})
+
+  // user update api.......................
+app.put('/update/:id', async (req, res) => {
+  const id = req.params.id;
+  const userData = req.body;
+
+  console.log('Update Request for ID:', id);
+  console.log('User data:', userData);
+
+  if (!userData.name || !userData.email || !userData.photo) {
+    return res.status(400).send({
+      success: false,
+      message: 'Missing required fields: name, email, or photo',
+    });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const updateDoc = {
+      $set: {
+        name: userData.name,
+        email: userData.email,
+        photo: userData.photo,
+      }
+    };
+    console.log(updateDoc)
+
+    const result = await usersCollection.updateOne(query, updateDoc);
+    const updatedUser = await usersCollection.findOne(query);
+
+    if (result.modifiedCount > 0) {
+      res.send({
+        success: true,
+        message: 'Profile updated successfully!',
+        user: updatedUser
+      });
+    } else {
+      res.send({
+        success: false,
+        message: 'No changes were made.'
+      });
+    }
+  } catch (error) {
+    console.error('Update Error:', error);
+    res.status(500).send({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    });
+  }
+});
+
+
+
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
