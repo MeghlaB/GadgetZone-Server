@@ -16,6 +16,8 @@ app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.u2fu7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const hello = 'this is for demo'
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -41,7 +43,7 @@ async function run() {
     const oderCollection = client.db("Ecommerce").collection("oders");
     const cartCollection = client.db("Ecommerce").collection("carts");
 
-    // users post collection api
+    // users post collection api //
     app.post("/users", async (req, res) => {
       const userData = req.body;
 
@@ -55,12 +57,15 @@ async function run() {
       res.send(result);
     });
 
-    // user get collection api
+    // user get collection api //
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       console.log(result);
       res.send(result);
     });
+
+
+    // admin panel 
 
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
