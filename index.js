@@ -7,7 +7,7 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://gadzetzone-be819.web.app"],
+    origin: ["http://localhost:5173", "https://oryon-92e50.web.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -138,7 +138,7 @@ async function run() {
         total_amount: product?.price,
         currency: oder?.currency,
         tran_id: tran_id,
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        success_url: `https://gadget-zone-server-kappa.vercel.app/payment/success/${tran_id}`,
         fail_url: "http://localhost:3030/fail",
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
