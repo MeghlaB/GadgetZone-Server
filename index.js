@@ -66,7 +66,6 @@ async function run() {
 
 
     // admin panel 
-
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollection.findOne({ email: email });
@@ -124,8 +123,7 @@ async function run() {
       res.send(result);
     });
 
-    //..........oders
-
+    //..........orders api
     const tran_id = new ObjectId().toString();
 
     app.post("/oders", async (req, res) => {
@@ -209,6 +207,7 @@ async function run() {
       res.send(result);
     });
 
+    //get all cart products
     app.get("/all-carts", async (req, res) => {
       const allItems = req.body;
       const result = await cartCollection.find().toArray();
