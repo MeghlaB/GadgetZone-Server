@@ -88,7 +88,7 @@ async function run() {
       res.send({ admin: user?.role === "admin" });
     });
 
-    
+
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
 
@@ -215,9 +215,27 @@ async function run() {
     // ......ADD TO CART.....
     app.post("/cart", async (req, res) => {
       const items = req.body;
+      console.log(items.userEmail)
+      console.log(items.productId)
+      // Check for existing product in user's cart
+      const existing = await cartCollection.findOne({
+        userEmail: items.userEmail,
+        productId: items.productId,
+      });
+
+      if (existing) {
+        return res.send({
+          acknowledged: false,
+          message: "Product already in cart",
+        });
+      }
+
+      // If not found, insert
       const result = await cartCollection.insertOne(items);
       res.send(result);
     });
+
+
 
     //get all cart products
     app.get("/all-carts", async (req, res) => {
