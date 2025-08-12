@@ -16,7 +16,7 @@ app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.u2fu7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-const hello = 'this is for demo'
+
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -118,16 +118,17 @@ async function run() {
       res.send(result);
     });
 
-app.get('/products', async (req, res) => {
-  const searchTerm = req.query.search || "";
+    // search api 
+    app.get('/products', async (req, res) => {
+      const searchTerm = req.query.search || "";
 
-  // MongoDB regex দিয়ে title ফিল্টার
-  const products = await productsCollection.find({
-    title: { $regex: searchTerm, $options: "i" }
-  });
+      // MongoDB regex দিয়ে title ফিল্টার
+      const products = await productsCollection.find({
+        title: { $regex: searchTerm, $options: "i" }
+      });
 
-  res.json(products);
-});
+      res.json(products);
+    });
 
     //   product get id api
     app.get("/products/:id", async (req, res) => {
@@ -147,7 +148,6 @@ app.get('/products', async (req, res) => {
     });
 
     // product search api
-
     app.get('/search', async (req, res) => {
       const searchTerm = req.query.q;
 
@@ -174,7 +174,7 @@ app.get('/products', async (req, res) => {
       }
     });
 
-    // app.get("/products/search", async (req, res) => {
+
     //   const queryText = req.query.query;
 
     //   if (!queryText) {
@@ -310,26 +310,74 @@ app.get('/products', async (req, res) => {
     });
 
     // ......ADD TO CART.....
+    // app.post("/cart", async (req, res) => {
+    //   const items = req.body;
+    //   console.log(items.userEmail)
+    //   console.log(items.productId)
+    //   // Check for existing product in user's cart
+    //   const existing = await cartCollection.findOne({
+    //     userEmail: items.userEmail,
+    //     productId: items.productId,
+    //   });
+
+    //   if (existing) {
+    //     return res.send({
+    //       acknowledged: false,
+    //       message: "Product already in cart",
+    //     });
+    //   }
+
+    //   // If not found, insert
+    //   else {
+    //     const result = await cartCollection.insertOne(items);
+    //     res.send(result);
+    //   }
+    // });
     app.post("/cart", async (req, res) => {
       const items = req.body;
-      console.log(items.userEmail)
-      console.log(items.productId)
-      // Check for existing product in user's cart
-      const existing = await cartCollection.findOne({
-        userEmail: items.userEmail,
-        productId: items.productId,
-      });
 
-      if (existing) {
-        return res.send({
-          acknowledged: false,
-          message: "Product already in cart",
-        });
+      if (!items.userEmail || !items.productId) {
+        return res.status(400).send({ acknowledged: false, message: "Missing userEmail or productId" });
       }
 
-      // If not found, insert
-      const result = await cartCollection.insertOne(items);
-      res.send(result);
+      try {
+        const existing = await cartCollection.findOne({
+          userEmail: items.userEmail,
+          productId: items.productId,
+        });
+
+        if (existing) {
+          return res.send({ acknowledged: false, message: "Product already in cart" });
+        }
+
+        const result = await cartCollection.insertOne(items);
+        return res.send({ acknowledged: true, insertedId: result.insertedId });
+      } catch (error) {
+        console.error(error);
+        return res.status(500).send({ acknowledged: false, message: "Server error" });
+      }
+    });
+
+    // delete cart product
+    app.delete("/deleteCart/:id", async (req, res) => {
+      const id = req.params.id;
+
+      if (!id) {
+        return res.status(400).send({ acknowledged: false, message: "Missing id" });
+      }
+
+      try {
+        const result = await cartCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 1) {
+          res.send({ acknowledged: true, message: "Deleted successfully" });
+        } else {
+          res.status(404).send({ acknowledged: false, message: "Item not found" });
+        }
+      } catch (error) {
+        console.error("Error deleting cart item:", error);
+        res.status(500).send({ acknowledged: false, message: "Server error" });
+      }
     });
 
 
