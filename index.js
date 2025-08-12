@@ -42,6 +42,7 @@ async function run() {
     const productsCollection = client.db("Ecommerce").collection("products");
     const oderCollection = client.db("Ecommerce").collection("oders");
     const cartCollection = client.db("Ecommerce").collection("carts");
+    const bannerImgCollection = client.db("Ecommerce").collection("banner-images");
 
     // users post collection api //
     app.post("/users", async (req, res) => {
@@ -175,22 +176,40 @@ async function run() {
     });
 
 
-    //   const queryText = req.query.query;
+    //-------------Banner Related API----------------
 
-    //   if (!queryText) {
-    //     return res.status(400).send({ message: "Search query is required" });
-    //   }
+    //Banner all data get api 
+    app.get('/bannerImgs', async (req, res) => {
+      const result = await bannerImgCollection.find().toArray()
+      res.send(result)
+    })
 
-    //   try {
-    //     const result = await productsCollection.find({
-    //       title: { $regex: queryText, $options: "i" }
-    //     }).toArray();
+    // Banner post api 
+    app.post('/bannerImg', async (req, res) => {
+      const bannerImgLink = req.body;
 
-    //     res.send(result);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Something went wrong", error: err });
-    //   }
-    // });
+      // Simple validation: check if there's a property like 'url' or any data
+      if (!bannerImgLink || Object.keys(bannerImgLink).length === 0) {
+        return res.status(400).send({ acknowledged: false, message: "Banner image data is required" });
+      }
+
+      try {
+        const result = await bannerImgCollection.insertOne(bannerImgLink);
+        console.log("Banner image inserted:", result);
+        res.send({ acknowledged: true, insertedId: result.insertedId });
+      } catch (error) {
+        console.error("Error inserting banner image:", error);
+        res.status(500).send({ acknowledged: false, message: "Server error" });
+      }
+    });
+
+    // Banner delete Api
+    app.delete('/bannerImg/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const result = await bannerImgCollection.deleteOne(query)
+      res.send(result)
+    })
 
 
 
