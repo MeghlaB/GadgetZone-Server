@@ -53,7 +53,7 @@ async function run() {
         return res.send({ message: "user already exits", instertedId: null });
       }
       const result = await usersCollection.insertOne(userData);
-      console.log(result);
+
       res.send(result);
     });
 
@@ -135,7 +135,93 @@ async function run() {
       res.send(result);
     });
 
+    // product search api
+
+    app.get('/search', async (req, res) => {
+      const searchTerm = req.query.q;
+
+      try {
+        let query = {
+          $or: [
+            { title: { $regex: searchTerm, $options: 'i' } },
+            { category: { $regex: searchTerm, $options: 'i' } },
+            { brand: { $regex: searchTerm, $options: 'i' } }
+          ]
+        };
+
+        // If valid ObjectId, also include _id match
+        if (isValidObjectId(searchTerm)) {
+          query.$or.push({ _id: new ObjectId(searchTerm) });
+        }
+
+        const results = await productsCollection.find(query).toArray();
+
+        res.send(results);
+      } catch (err) {
+        console.error('Search error:', err);
+        res.status(500).send({ message: 'Internal Server Error' });
+      }
+    });
+
+    // app.get("/products/search", async (req, res) => {
+    //   const queryText = req.query.query;
+
+    //   if (!queryText) {
+    //     return res.status(400).send({ message: "Search query is required" });
+    //   }
+
+    //   try {
+    //     const result = await productsCollection.find({
+    //       title: { $regex: queryText, $options: "i" }
+    //     }).toArray();
+
+    //     res.send(result);
+    //   } catch (err) {
+    //     res.status(500).send({ message: "Something went wrong", error: err });
+    //   }
+    // });
+
+
+
+
     //..........orders api
+
+    // Utility: check if valid ObjectId
+    const isValidObjectId = (id) => {
+      return ObjectId.isValid(id) && String(new ObjectId(id)) === id;
+    };
+
+    // Search API
+    app.get("/search", async (req, res) => {
+      const searchTerm = req.query.q;
+
+      if (!searchTerm) {
+        return res.status(400).send({ message: "Search term is required" });
+      }
+
+      try {
+        let query = {
+          $or: [
+            { title: { $regex: searchTerm, $options: "i" } },
+            { category: { $regex: searchTerm, $options: "i" } },
+            { brand: { $regex: searchTerm, $options: "i" } }
+          ]
+        };
+
+        // If valid ObjectId, also include _id match
+        if (isValidObjectId(searchTerm)) {
+          query.$or.push({ _id: new ObjectId(searchTerm) });
+        }
+
+        const results = await productsCollection.find(query).toArray();
+
+        res.send(results);
+      } catch (err) {
+        console.error("Search error:", err);
+        res.status(500).send({ message: "Internal Server Error" });
+      }
+    });
+
     const tran_id = new ObjectId().toString();
 
     app.post("/oders", async (req, res) => {
