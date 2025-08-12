@@ -51,14 +51,14 @@ async function run() {
         return res.send({ message: "user already exits", instertedId: null });
       }
       const result = await usersCollection.insertOne(userData);
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
     // user get collection api
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
@@ -101,6 +101,17 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+app.get('/products', async (req, res) => {
+  const searchTerm = req.query.search || "";
+
+  // MongoDB regex দিয়ে title ফিল্টার
+  const products = await productsCollection.find({
+    title: { $regex: searchTerm, $options: "i" }
+  });
+
+  res.json(products);
+});
 
     //   product get id api
     app.get("/products/:id", async (req, res) => {
