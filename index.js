@@ -16,6 +16,8 @@ app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.u2fu7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const hello = 'this is for demo'
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -41,7 +43,7 @@ async function run() {
     const oderCollection = client.db("Ecommerce").collection("oders");
     const cartCollection = client.db("Ecommerce").collection("carts");
 
-    // users post collection api
+    // users post collection api //
     app.post("/users", async (req, res) => {
       const userData = req.body;
 
@@ -55,26 +57,40 @@ async function run() {
       res.send(result);
     });
 
-    // user get collection api
+
+    // user get collection api //
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       // console.log(result);
       res.send(result);
     });
 
+    // delete one user 
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      try {
+        const result = await usersCollection.deleteOne(query);
+        console.log(`User with ID ${id} deleted`, result);
+        res.send(result);
+      } catch (error) {
+        console.error("Failed to delete user:", error);
+        res.status(500).send({ message: "Failed to delete user", error });
+      }
+    });
+
+
+    // admin panel 
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollection.findOne({ email: email });
       res.send({ admin: user?.role === "admin" });
     });
 
+
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
-      // console.log('Decoded email:', req.decoded?.email);
-      // console.log('Request email:', email);
-      // if (!req.decoded || email !== req.decoded.email) {
-      //   return res.status(403).send({ message: 'Forbidden access' });
-      // }
 
       const query = { email: email };
       const user = await usersCollection.findOne(query);
@@ -130,8 +146,7 @@ app.get('/products', async (req, res) => {
       res.send(result);
     });
 
-    //..........oders
-
+    //..........orders api
     const tran_id = new ObjectId().toString();
 
     app.post("/oders", async (req, res) => {
@@ -211,10 +226,29 @@ app.get('/products', async (req, res) => {
     // ......ADD TO CART.....
     app.post("/cart", async (req, res) => {
       const items = req.body;
+      console.log(items.userEmail)
+      console.log(items.productId)
+      // Check for existing product in user's cart
+      const existing = await cartCollection.findOne({
+        userEmail: items.userEmail,
+        productId: items.productId,
+      });
+
+      if (existing) {
+        return res.send({
+          acknowledged: false,
+          message: "Product already in cart",
+        });
+      }
+
+      // If not found, insert
       const result = await cartCollection.insertOne(items);
       res.send(result);
     });
 
+
+
+    //get all cart products
     app.get("/all-carts", async (req, res) => {
       const allItems = req.body;
       const result = await cartCollection.find().toArray();
@@ -243,72 +277,72 @@ app.get('/products', async (req, res) => {
 
 
     // ..............user,admin,seller profile api...............
-app.get('/users/profile/:email',async(req,res)=>{
-  try{
-    const email = req.params.email;
-    const query= {email:email}
-    const user = await usersCollection.findOne(query)
-    if(user){
-      res.send(user)
-    }
-    else{
-      res.status(404).send({message:'user is not data found '})
-    }
-  }catch(error){
-    res.status(500).send({message:'Error fetching user profile',error})
-  }
-})
-
-  // user update api.......................
-app.put('/update/:id', async (req, res) => {
-  const id = req.params.id;
-  const userData = req.body;
-
-  console.log('Update Request for ID:', id);
-  console.log('User data:', userData);
-
-  if (!userData.name || !userData.email || !userData.photo) {
-    return res.status(400).send({
-      success: false,
-      message: 'Missing required fields: name, email, or photo',
-    });
-  }
-
-  try {
-    const query = { _id: new ObjectId(id) };
-    const updateDoc = {
-      $set: {
-        name: userData.name,
-        email: userData.email,
-        photo: userData.photo,
+    app.get('/users/profile/:email', async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email }
+        const user = await usersCollection.findOne(query)
+        if (user) {
+          res.send(user)
+        }
+        else {
+          res.status(404).send({ message: 'user is not data found ' })
+        }
+      } catch (error) {
+        res.status(500).send({ message: 'Error fetching user profile', error })
       }
-    };
-    console.log(updateDoc)
+    })
 
-    const result = await usersCollection.updateOne(query, updateDoc);
-    const updatedUser = await usersCollection.findOne(query);
+    // user update api.......................
+    app.put('/update/:id', async (req, res) => {
+      const id = req.params.id;
+      const userData = req.body;
 
-    if (result.modifiedCount > 0) {
-      res.send({
-        success: true,
-        message: 'Profile updated successfully!',
-        user: updatedUser
-      });
-    } else {
-      res.send({
-        success: false,
-        message: 'No changes were made.'
-      });
-    }
-  } catch (error) {
-    console.error('Update Error:', error);
-    res.status(500).send({
-      success: false,
-      message: 'Failed to update profile',
-      error: error.message
+      console.log('Update Request for ID:', id);
+      console.log('User data:', userData);
+
+      if (!userData.name || !userData.email || !userData.photo) {
+        return res.status(400).send({
+          success: false,
+          message: 'Missing required fields: name, email, or photo',
+        });
+      }
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            name: userData.name,
+            email: userData.email,
+            photo: userData.photo,
+          }
+        };
+        console.log(updateDoc)
+
+        const result = await usersCollection.updateOne(query, updateDoc);
+        const updatedUser = await usersCollection.findOne(query);
+
+        if (result.modifiedCount > 0) {
+          res.send({
+            success: true,
+            message: 'Profile updated successfully!',
+            user: updatedUser
+          });
+        } else {
+          res.send({
+            success: false,
+            message: 'No changes were made.'
+          });
+        }
+      } catch (error) {
+        console.error('Update Error:', error);
+        res.status(500).send({
+          success: false,
+          message: 'Failed to update profile',
+          error: error.message
+        });
+      }
     });
-  }
-});
 
 
 
