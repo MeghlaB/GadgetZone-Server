@@ -7,7 +7,7 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://oryon-92e50.web.app"],
+    origin: ["http://localhost:5173", "https://e-commerce-4e765.web.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -73,7 +73,7 @@ async function run() {
 
       try {
         const result = await usersCollection.deleteOne(query);
-        console.log(`User with ID ${id} deleted`, result);
+        // console.log(`User with ID ${id} deleted`, result);
         res.send(result);
       } catch (error) {
         console.error("Failed to delete user:", error);
@@ -108,14 +108,14 @@ async function run() {
     app.post("/add-products", async (req, res) => {
       const productsData = req.body;
       const result = await productsCollection.insertOne(productsData);
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
     // product get collection api
     app.get("/products", async (req, res) => {
       const result = await productsCollection.find().toArray();
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
@@ -136,7 +136,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await productsCollection.find(query).toArray();
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
@@ -195,10 +195,10 @@ async function run() {
 
       try {
         const result = await bannerImgCollection.insertOne(bannerImgLink);
-        console.log("Banner image inserted:", result);
+        // console.log("Banner image inserted:", result);
         res.send({ acknowledged: true, insertedId: result.insertedId });
       } catch (error) {
-        console.error("Error inserting banner image:", error);
+        // console.error("Error inserting banner image:", error);
         res.status(500).send({ acknowledged: false, message: "Server error" });
       }
     });
@@ -291,7 +291,7 @@ async function run() {
         ship_country: "Bangladesh",
       };
 
-      console.log(data);
+      // console.log(data);
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then((apiResponse) => {
         const GatewayPageURL = apiResponse.GatewayPageURL;
@@ -304,12 +304,12 @@ async function run() {
         oderCollection.insertOne(finalOrder);
 
         res.send({ url: GatewayPageURL });
-        console.log("Redirecting to: ", GatewayPageURL);
+        // console.log("Redirecting to: ", GatewayPageURL);
       });
     });
 
     app.post("/payment/success/:tranId", async (req, res) => {
-      console.log(req.params.tranId);
+      // console.log(req.params.tranId);
       const result = await oderCollection.updateOne(
         { transjectionId: req.params.tranId },
         {
@@ -451,8 +451,8 @@ async function run() {
       const id = req.params.id;
       const userData = req.body;
 
-      console.log('Update Request for ID:', id);
-      console.log('User data:', userData);
+      // console.log('Update Request for ID:', id);
+      // console.log('User data:', userData);
 
       if (!userData.name || !userData.email || !userData.photo) {
         return res.status(400).send({
