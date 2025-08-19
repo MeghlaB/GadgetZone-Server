@@ -254,115 +254,80 @@ async function run() {
       }
     });
 
-    const tran_id = new ObjectId().toString();
 
-    app.post("/oders", async (req, res) => {
-      const product = await productsCollection.findOne({
-        _id: new ObjectId(req.body.productID),
-      });
-      const oder = req.body;
-
-      const data = {
-        total_amount: product?.price,
-        currency: oder?.currency,
-        tran_id: tran_id,
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-            fail_url: "http://localhost:5000/payment/fail",
-      cancel_url: "http://localhost:5000/payment/cancel",
-      ipn_url: "http://localhost:5000/payment/ipn",
-        shipping_method: "Courier",
-        product_name: product?.category,
-        product_category: "Electronic",
-        product_profile: "general",
-        cus_name: oder?.name,
-        cus_email: "customer@example.com",
-        cus_add1: oder?.address,
-        cus_add2: "Dhaka",
-        cus_city: "Dhaka",
-        cus_state: "Dhaka",
-        cus_postcode: "1000",
-        cus_country: "Bangladesh",
-        cus_phone: oder?.phone,
-        cus_fax: "01711111111",
-        ship_name: "Customer Name",
-        ship_add1: "Dhaka",
-        ship_add2: "Dhaka",
-        ship_city: "Dhaka",
-        ship_state: "Dhaka",
+    //..............PAYMENT GATEWAY INT............
+    const tran_id = new ObjectId().toString()
+    app.post('/order', async(req,res)=>{
+      const product = await productsCollection.findOne({_id:new ObjectId(req.body.productId)})
+      console.log(product)
+      const order = req.body
+     const data = {
+        total_amount:product?.price,
+        currency:order?.currency ,
+        tran_id: tran_id, // use unique tran_id for each api call
+        success_url:`http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        cancel_url: 'http://localhost:3030/cancel',
+        ipn_url: 'http://localhost:3030/ipn',
+        shipping_method: 'Courier',
+        product_name: 'Computer.',
+        product_category: 'Electronic',
+        product_profile: 'general',
+        cus_name: order?.name,
+        cus_email: 'customer@example.com',
+        cus_add1: order?.address,
+        cus_add2: 'Dhaka',
+        cus_city: 'Dhaka',
+        cus_state: 'Dhaka',
+        cus_postcode: '1000',
+        cus_country: 'Bangladesh',
+        cus_phone: order?.phone,
+        cus_fax: '01711111111',
+        ship_name: 'Customer Name',
+        ship_add1: 'Dhaka',
+        ship_add2: 'Dhaka',
+        ship_city: 'Dhaka',
+        ship_state: 'Dhaka',
         ship_postcode: 1000,
-        ship_country: "Bangladesh",
-      };
-
-      console.log(data);
-      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
-      sslcz.init(data).then((apiResponse) => {
-        const GatewayPageURL = apiResponse.GatewayPageURL;
-
+        ship_country: 'Bangladesh',
+    };
+    console.log(data)
+    const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+    sslcz.init(data).then(apiResponse => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL
+        res.send({url:GatewayPageURL})
         const finalOrder = {
-          product,
-          paidStatus: false,
-          transjectionId: tran_id,
-        };
-        oderCollection.insertOne(finalOrder);
-
-        res.send({ url: GatewayPageURL });
-        console.log("Redirecting to: ", GatewayPageURL);
-      });
-    });
-
-    app.post("/payment/success/:tranId", async (req, res) => {
-      console.log(req.params.tranId);
-      const result = await oderCollection.updateOne(
-        { transjectionId: req.params.tranId },
-        {
-          $set: {
-            paidStatus: true,
-          },
+          product,paidStatus:false ,tranjectionId:tran_id
         }
-      );
-
-      if (result.modifiedCount > 0) {
-        res.redirect(
-          `payment/success/${req.params.tranId}`
-        );
-      } else {
-        res.status(400).send("Payment success, but order not updated.");
-      }
+        const result = oderCollection.insertOne(finalOrder)
+        console.log('Redirecting to: ', GatewayPageURL)
     });
 
-  // Payment Fail
-app.get("/payment/fail", (req, res) => {
-  res.send("Payment Failed");
-});
+    })
 
-// Payment Cancel
-app.get("/payment/cancel", (req, res) => {
-  res.send("Payment Canceled");
-});
+     app.post('/payment/success/:tranId',async(req,res)=>{
+     console.log(req.params.tranId)
+     const result = await oderCollection.updateOne(
+      {tranjectionId:req.params.tranId},
+      {
+        $set:{
+          paidStatus:true
+        }
+      }
+     )
+     if(result.modifiedCount>0){
+      res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+     }
+    })
 
-// IPN (Instant Payment Notification)
-app.post("/payment/ipn", (req, res) => {
-  console.log("IPN Data:", req.body);
-  res.sendStatus(200);
-});
 
-
-app.get("/oders", async (req, res) => {
-  const orders = await oderCollection.find().toArray();
-  res.send(orders);
-});
-
-// নির্দিষ্ট transactionId দিয়ে অর্ডার খুঁজতে
-app.get("/oders/:tranId", async (req, res) => {
-  const tranId = req.params.tranId;
-  const order = await oderCollection.findOne({ transjectionId: tranId });
-  
-  if (order) {
-    res.send(order);
-  } else {
-    res.status(404).send({ message: "Order not found" });
-  }
-});
+    app.post('/payment/fail/:tranId',async(req,res)=>{
+      const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
+      if(result.deletedCount){
+        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+      }
+    })
 
 
 
@@ -372,7 +337,7 @@ app.get("/oders/:tranId", async (req, res) => {
 
     // ......ADD TO CART.....
     // app.post("/cart", async (req, res) => {
-    //   const items = req.body;
+    //eq.body)   const items = req.body;
     //   console.log(items.userEmail)
     //   console.log(items.productId)
     //   // Check for existing product in user's cart
