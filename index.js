@@ -267,9 +267,9 @@ async function run() {
         currency: oder?.currency,
         tran_id: tran_id,
         success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
-        fail_url: "http://localhost:3030/fail",
-        cancel_url: "http://localhost:3030/cancel",
-        ipn_url: "http://localhost:3030/ipn",
+            fail_url: "https://gadgetzone-server.onrender.com/payment/fail",
+      cancel_url: "https://gadgetzone-server.onrender.com/payment/cancel",
+      ipn_url: "https://gadgetzone-server.onrender.com/payment/ipn",
         shipping_method: "Courier",
         product_name: product?.category,
         product_category: "Electronic",
@@ -329,6 +329,23 @@ async function run() {
         res.status(400).send("Payment success, but order not updated.");
       }
     });
+
+  // Payment Fail
+app.get("/payment/fail", (req, res) => {
+  res.send("Payment Failed");
+});
+
+// Payment Cancel
+app.get("/payment/cancel", (req, res) => {
+  res.send("Payment Canceled");
+});
+
+// IPN (Instant Payment Notification)
+app.post("/payment/ipn", (req, res) => {
+  console.log("IPN Data:", req.body);
+  res.sendStatus(200);
+});
+
 
 app.get("/oders", async (req, res) => {
   const orders = await oderCollection.find().toArray();
