@@ -266,10 +266,10 @@ async function run() {
         total_amount: product?.price,
         currency: oder?.currency,
         tran_id: tran_id,
-        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
-            fail_url: "https://gadgetzone-server.onrender.com/payment/fail",
-      cancel_url: "https://gadgetzone-server.onrender.com/payment/cancel",
-      ipn_url: "https://gadgetzone-server.onrender.com/payment/ipn",
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+            fail_url: "http://localhost:5000/payment/fail",
+      cancel_url: "http://localhost:5000/payment/cancel",
+      ipn_url: "http://localhost:5000/payment/ipn",
         shipping_method: "Courier",
         product_name: product?.category,
         product_category: "Electronic",
@@ -323,7 +323,7 @@ async function run() {
 
       if (result.modifiedCount > 0) {
         res.redirect(
-          `http://localhost:5173/payment/success/${req.params.tranId}`
+          `payment/success/${req.params.tranId}`
         );
       } else {
         res.status(400).send("Payment success, but order not updated.");
