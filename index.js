@@ -1,7 +1,9 @@
 const express = require("express");
 const app = express();
+const SSLCommerzPayment = require('sslcommerz-lts')
 const port = process.env.PORT || 5000;
-const SSLCommerzPayment = require("sslcommerz-lts");
+
+
 const cors = require("cors");
 require("dotenv").config();
 
@@ -264,7 +266,7 @@ async function run() {
         total_amount: product?.price,
         currency: oder?.currency,
         tran_id: tran_id,
-        success_url: `https://gadget-zone-server-kappa.vercel.app/payment/success/${tran_id}`,
+        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
         fail_url: "http://localhost:3030/fail",
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
@@ -291,7 +293,7 @@ async function run() {
         ship_country: "Bangladesh",
       };
 
-      // console.log(data);
+      console.log(data);
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then((apiResponse) => {
         const GatewayPageURL = apiResponse.GatewayPageURL;
@@ -304,12 +306,12 @@ async function run() {
         oderCollection.insertOne(finalOrder);
 
         res.send({ url: GatewayPageURL });
-        // console.log("Redirecting to: ", GatewayPageURL);
+        console.log("Redirecting to: ", GatewayPageURL);
       });
     });
 
     app.post("/payment/success/:tranId", async (req, res) => {
-      // console.log(req.params.tranId);
+      console.log(req.params.tranId);
       const result = await oderCollection.updateOne(
         { transjectionId: req.params.tranId },
         {
@@ -327,6 +329,29 @@ async function run() {
         res.status(400).send("Payment success, but order not updated.");
       }
     });
+
+app.get("/oders", async (req, res) => {
+  const orders = await oderCollection.find().toArray();
+  res.send(orders);
+});
+
+// নির্দিষ্ট transactionId দিয়ে অর্ডার খুঁজতে
+app.get("/oders/:tranId", async (req, res) => {
+  const tranId = req.params.tranId;
+  const order = await oderCollection.findOne({ transjectionId: tranId });
+  
+  if (order) {
+    res.send(order);
+  } else {
+    res.status(404).send({ message: "Order not found" });
+  }
+});
+
+
+
+
+
+
 
     // ......ADD TO CART.....
     // app.post("/cart", async (req, res) => {
