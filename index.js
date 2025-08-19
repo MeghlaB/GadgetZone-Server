@@ -56,14 +56,14 @@ async function run() {
         return res.send({ message: "user already exits", instertedId: null });
       }
       const result = await usersCollection.insertOne(userData);
-      // console.log(result);
+
       res.send(result);
     });
 
     // user get collection api //
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
-      // console.log(result);
+
       res.send(result);
     });
 
@@ -74,7 +74,6 @@ async function run() {
 
       try {
         const result = await usersCollection.deleteOne(query);
-        // console.log(`User with ID ${id} deleted`, result);
         res.send(result);
       } catch (error) {
         console.error("Failed to delete user:", error);
@@ -112,14 +111,14 @@ async function run() {
     app.post("/add-products", async (req, res) => {
       const productsData = req.body;
       const result = await productsCollection.insertOne(productsData);
-      // console.log(result);
+
       res.send(result);
     });
 
     // product get collection api
     app.get("/products", async (req, res) => {
       const result = await productsCollection.find().toArray();
-      // console.log(result);
+
       res.send(result);
     });
 
@@ -140,7 +139,6 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await productsCollection.find(query).toArray();
-      // console.log(result);
       res.send(result);
     });
 
@@ -230,7 +228,7 @@ async function run() {
 
       try {
         const result = await bannerImgCollection.insertOne(bannerImgLink);
-        // console.log("Banner image inserted:", result);
+
         res.send({ acknowledged: true, insertedId: result.insertedId });
       } catch (error) {
         // console.error("Error inserting banner image:", error);
@@ -290,15 +288,20 @@ async function run() {
 
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString()
+
     app.post('/order', async(req,res)=>{
       const product = await productsCollection.findOne({_id:new ObjectId(req.body.productId)})
       // console.log(product)
+
+    app.post('/order', async (req, res) => {
+      const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
+
       const order = req.body
-     const data = {
-        total_amount:product?.price,
-        currency:order?.currency ,
+      const data = {
+        total_amount: product?.price,
+        currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url:`https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
+        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
         fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
@@ -323,48 +326,63 @@ async function run() {
         ship_state: 'Dhaka',
         ship_postcode: 1000,
         ship_country: 'Bangladesh',
-    };
-    console.log(data)
-    const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
-    sslcz.init(data).then(apiResponse => {
+      };
+
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+      sslcz.init(data).then(apiResponse => {
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL
-        res.send({url:GatewayPageURL})
+        res.send({ url: GatewayPageURL })
         const finalOrder = {
-          product,paidStatus:false ,tranjectionId:tran_id
+          product, paidStatus: false, tranjectionId: tran_id
         }
         const result = oderCollection.insertOne(finalOrder)
-        console.log('Redirecting to: ', GatewayPageURL)
-    });
+ 
+      });
 
     })
 
-     app.post('/payment/success/:tranId',async(req,res)=>{
-     console.log(req.params.tranId)
-     const result = await oderCollection.updateOne(
-      {tranjectionId:req.params.tranId},
-      {
-        $set:{
-          paidStatus:true
+    app.post('/payment/success/:tranId', async (req, res) => {
+     
+      const result = await oderCollection.updateOne(
+        { tranjectionId: req.params.tranId },
+        {
+          $set: {
+            paidStatus: true
+          }
         }
+      )
+      if (result.modifiedCount > 0) {
+        res.redirect(`https://e-commerce-4e765.web.app/payment/success/${req.params.tranId}`)
       }
-     )
-    //  if(result.modifiedCount>0){
-    //   res.redirect(`https://oyon-be57d.web.app/payment/success/${req.params.tranId}`)
-    //  }
+
+    })
      if(result.modifiedCount>0){
-      res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+      res.redirect(`https://oyon-be57d.web.app/payment/success/${req.params.tranId}`)
      }
+    //  if(result.modifiedCount>0){
+    //   res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+    //  }
     })
 
 
     app.post('/payment/fail/:tranId',async(req,res)=>{
       const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
-      // if(result.deletedCount){
-      //   res.redirect(`https://oyon-be57d.web.app/payment/fail/${req.params.tranId}`)
-      // }
       if(result.deletedCount){
-        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://oyon-be57d.web.app/payment/fail/${req.params.tranId}`)
+      }
+    //   if(result.deletedCount){
+    //     res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+
+    // }
+  })
+
+
+    app.post('/payment/fail/:tranId', async (req, res) => {
+      const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
+      if (result.deletedCount) {
+        res.redirect(`https://e-commerce-4e765.web.app/payment/fail/${req.params.tranId}`)
+
       }
     })
 
@@ -377,29 +395,7 @@ async function run() {
 
 
     // ......ADD TO CART.....
-    // app.post("/cart", async (req, res) => {
-    //eq.body)   const items = req.body;
-    //   console.log(items.userEmail)
-    //   console.log(items.productId)
-    //   // Check for existing product in user's cart
-    //   const existing = await cartCollection.findOne({
-    //     userEmail: items.userEmail,
-    //     productId: items.productId,
-    //   });
-
-    //   if (existing) {
-    //     return res.send({
-    //       acknowledged: false,
-    //       message: "Product already in cart",
-    //     });
-    //   }
-
-    //   // If not found, insert
-    //   else {
-    //     const result = await cartCollection.insertOne(items);
-    //     res.send(result);
-    //   }
-    // });
+    
     app.post("/cart", async (req, res) => {
       const items = req.body;
 
@@ -498,9 +494,6 @@ async function run() {
       const id = req.params.id;
       const userData = req.body;
 
-      // console.log('Update Request for ID:', id);
-      // console.log('User data:', userData);
-
       if (!userData.name || !userData.email || !userData.photo) {
         return res.status(400).send({
           success: false,
@@ -517,7 +510,7 @@ async function run() {
             photo: userData.photo,
           }
         };
-        console.log(updateDoc)
+  
 
         const result = await usersCollection.updateOne(query, updateDoc);
         const updatedUser = await usersCollection.findOne(query);
