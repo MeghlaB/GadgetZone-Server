@@ -58,7 +58,6 @@ async function run() {
       res.send(result);
     });
 
-
     // user get collection api //
     app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
@@ -82,13 +81,13 @@ async function run() {
     });
 
 
-    // admin panel 
+    // -------------admin panel related API----------------
+
     app.get("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollection.findOne({ email: email });
       res.send({ admin: user?.role === "admin" });
     });
-
 
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
@@ -103,6 +102,9 @@ async function run() {
 
       res.send({ seller });
     });
+
+
+    //----------Products Related API-------------
 
     // products post collection api
     app.post("/add-products", async (req, res) => {
@@ -148,6 +150,36 @@ async function run() {
       res.send(result);
     });
 
+    // update product
+    app.patch("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedFields = req.body;
+
+      if (!updatedFields || Object.keys(updatedFields).length === 0) {
+        return res.status(400).send({ message: "No fields to update" });
+      }
+
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = { $set: updatedFields };
+
+      try {
+        const result = await productsCollection.updateOne(query, updateDoc);
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+
+        res.send({
+          message: "Product updated successfully",
+          modifiedCount: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update product", error });
+      }
+    });
+
+
     // product search api
     app.get('/search', async (req, res) => {
       const searchTerm = req.query.q;
@@ -174,6 +206,7 @@ async function run() {
         res.status(500).send({ message: 'Internal Server Error' });
       }
     });
+
 
 
     //-------------Banner Related API----------------
@@ -328,6 +361,8 @@ async function run() {
       }
     });
 
+
+
     // ......ADD TO CART.....
     // app.post("/cart", async (req, res) => {
     //   const items = req.body;
@@ -398,7 +433,6 @@ async function run() {
         res.status(500).send({ acknowledged: false, message: "Server error" });
       }
     });
-
 
 
     //get all cart products
