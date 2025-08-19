@@ -317,7 +317,7 @@ async function run() {
       }
      )
      if(result.modifiedCount>0){
-      res.redirect(`https://gadgetzone-server.onrender.com/payment/success/${req.params.tranId}`)
+      res.redirect(`https://e-commerce-4e765.web.app/payment/success/${req.params.tranId}`)
      }
     })
 
@@ -325,7 +325,7 @@ async function run() {
     app.post('/payment/fail/:tranId',async(req,res)=>{
       const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
       if(result.deletedCount){
-        res.redirect(`https://gadgetzone-server.onrender.com/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://e-commerce-4e765.web.app/payment/fail/${req.params.tranId}`)
       }
     })
 
