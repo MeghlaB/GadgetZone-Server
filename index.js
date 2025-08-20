@@ -9,7 +9,7 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://e-commerce-4e765.web.app"],
+    origin: ["http://localhost:5173", "https://oyon-be57d.web.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -288,8 +288,14 @@ async function run() {
 
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString()
+
+    app.post('/order', async(req,res)=>{
+      const product = await productsCollection.findOne({_id:new ObjectId(req.body.productId)})
+      // console.log(product)
+
     app.post('/order', async (req, res) => {
       const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
+
       const order = req.body
       const data = {
         total_amount: product?.price,
@@ -349,13 +355,34 @@ async function run() {
       if (result.modifiedCount > 0) {
         res.redirect(`https://e-commerce-4e765.web.app/payment/success/${req.params.tranId}`)
       }
+
     })
+     if(result.modifiedCount>0){
+      res.redirect(`https://oyon-be57d.web.app/payment/success/${req.params.tranId}`)
+     }
+    //  if(result.modifiedCount>0){
+    //   res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+    //  }
+    })
+
+
+    app.post('/payment/fail/:tranId',async(req,res)=>{
+      const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
+      if(result.deletedCount){
+        res.redirect(`https://oyon-be57d.web.app/payment/fail/${req.params.tranId}`)
+      }
+    //   if(result.deletedCount){
+    //     res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+
+    // }
+  })
 
 
     app.post('/payment/fail/:tranId', async (req, res) => {
       const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
       if (result.deletedCount) {
         res.redirect(`https://e-commerce-4e765.web.app/payment/fail/${req.params.tranId}`)
+
       }
     })
 
