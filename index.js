@@ -9,7 +9,7 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://oyon-be57d.web.app"],
+    origin: ["http://localhost:5173", "https://oryontech.web.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -353,13 +353,13 @@ async function run() {
         }
       )
       if (result.modifiedCount > 0) {
-        res.redirect(`https://e-commerce-4e765.web.app/payment/success/${req.params.tranId}`)
+        res.redirect(`https://oryontech.web.app/payment/success/${req.params.tranId}`)
       }
 
     })
-     if(result.modifiedCount>0){
-      res.redirect(`https://oyon-be57d.web.app/payment/success/${req.params.tranId}`)
-     }
+    //  if(result.modifiedCount>0){
+    //   res.redirect(`https://oyon-be57d.web.app/payment/success/${req.params.tranId}`)
+    //  }
     //  if(result.modifiedCount>0){
     //   res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
     //  }
@@ -369,7 +369,7 @@ async function run() {
     app.post('/payment/fail/:tranId',async(req,res)=>{
       const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
       if(result.deletedCount){
-        res.redirect(`https://oyon-be57d.web.app/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
       }
     //   if(result.deletedCount){
     //     res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
