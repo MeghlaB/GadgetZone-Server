@@ -9,7 +9,7 @@ require("dotenv").config();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://e-commerce-4e765.web.app"],
+    origin: ["http://localhost:5173", "https://oryontech.web.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
@@ -288,15 +288,19 @@ async function run() {
 
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString()
+
+    
+
     app.post('/order', async (req, res) => {
       const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
+
       const order = req.body
       const data = {
         total_amount: product?.price,
         currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
-        fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -356,20 +360,50 @@ async function run() {
           }
         }
       )
-      if (result.modifiedCount > 0) {
-        res.redirect(`https://e-commerce-4e765.web.app/payment/success/${req.params.tranId}`)
+      console.log(result)
+      if(result.modifiedCount>0){
+       res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
       }
+
     })
+   
+    app.post('/payment/fail/:tranId',async(req,res)=>{
+      const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
+      // if(result.deletedCount){
+      //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
+      // }
+      if(result.deletedCount){
+        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+
+    }
+  })
 
 
-    app.post('/payment/fail/:tranId', async (req, res) => {
-      const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
-      if (result.deletedCount) {
-        res.redirect(`https://e-commerce-4e765.web.app/payment/fail/${req.params.tranId}`)
+  app.get('/orders',async(req,res)=>{
+    const result =  await oderCollection.find().toArray()
+    res.send(result)
+  })
+  
+
+   app.get("/orders", async (req, res) => {
+      const email = req.query.email;
+
+      if (!email) {
+        return res
+          .status(400)
+          .send({ message: "Email query parameter is required" });
       }
-    })
 
-
+      try {
+        const result = await oderCollection
+          .find({ userEmail: email })
+          .toArray();
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to fetch cart items" });
+      }
+    });
 
 
     // ......ADD TO CART.....
