@@ -126,7 +126,7 @@ async function run() {
     app.get('/products', async (req, res) => {
       const searchTerm = req.query.search || "";
 
-      // MongoDB regex দিয়ে title ফিল্টার
+
       const products = await productsCollection.find({
         title: { $regex: searchTerm, $options: "i" }
       });
@@ -331,13 +331,23 @@ async function run() {
           product, paidStatus: false, tranjectionId: tran_id
         }
         const result = oderCollection.insertOne(finalOrder)
- 
+
       });
 
     })
 
+    app.get('/orders', async (req, res) => {
+      try {
+        const result = await oderCollection.find().toArray()
+        res.send(result)
+      }
+      catch (error) {
+          res.status(404).send('Orders data not found')
+      }
+    })
+
     app.post('/payment/success/:tranId', async (req, res) => {
-     
+
       const result = await oderCollection.updateOne(
         { tranjectionId: req.params.tranId },
         {
@@ -362,13 +372,8 @@ async function run() {
 
 
 
-
-
-
-
-
     // ......ADD TO CART.....
-    
+
     app.post("/cart", async (req, res) => {
       const items = req.body;
 
@@ -483,7 +488,7 @@ async function run() {
             photo: userData.photo,
           }
         };
-  
+
 
         const result = await usersCollection.updateOne(query, updateDoc);
         const updatedUser = await usersCollection.findOne(query);
@@ -509,9 +514,6 @@ async function run() {
         });
       }
     });
-
-
-
 
 
     // Send a ping to confirm a successful connection
