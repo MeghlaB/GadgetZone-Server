@@ -299,8 +299,8 @@ async function run() {
         total_amount: product?.price,
         currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
+        fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -352,20 +352,21 @@ async function run() {
       )
       console.log(result)
       if(result.modifiedCount>0){
-       res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+       res.redirect(`https://oryontech.web.app/payment/success/${req.params.tranId}`)
       }
 
     })
    
     app.post('/payment/fail/:tranId',async(req,res)=>{
       const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
-      // if(result.deletedCount){
-      //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
-      // }
       if(result.deletedCount){
-        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
+      }
 
-    }
+    //   if(result.deletedCount){
+    //     res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+
+    // }
   })
 
 
