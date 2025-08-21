@@ -289,7 +289,7 @@ async function run() {
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString()
 
-    
+
 
     app.post('/order', async (req, res) => {
       const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
@@ -340,15 +340,15 @@ async function run() {
 
     })
 
-    app.get('/orders', async (req, res) => {
-      try {
-        const result = await oderCollection.find().toArray()
-        res.send(result)
-      }
-      catch (error) {
-          res.status(404).send('Orders data not found')
-      }
-    })
+    // app.get('/orders', async (req, res) => {
+    //   try {
+    //     const result = await oderCollection.find().toArray()
+    //     res.send(result)
+    //   }
+    //   catch (error) {
+    //     res.status(404).send('Orders data not found')
+    //   }
+    // })
 
     app.post('/payment/success/:tranId', async (req, res) => {
 
@@ -361,52 +361,194 @@ async function run() {
         }
       )
       console.log(result)
-      if(result.modifiedCount>0){
-       res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+      if (result.modifiedCount > 0) {
+        res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
       }
 
     })
-   
-    app.post('/payment/fail/:tranId',async(req,res)=>{
-      const result = await oderCollection.deleteOne({tranjectionId:req.params.tranId})
+
+    app.post('/payment/fail/:tranId', async (req, res) => {
+      const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
       // if(result.deletedCount){
       //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
       // }
-      if(result.deletedCount){
+      if (result.deletedCount) {
         res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
 
-    }
-  })
-
-
-  app.get('/orders',async(req,res)=>{
-    const result =  await oderCollection.find().toArray()
-    res.send(result)
-  })
-  
-
-   app.get("/orders", async (req, res) => {
-      const email = req.query.email;
-
-      if (!email) {
-        return res
-          .status(400)
-          .send({ message: "Email query parameter is required" });
       }
+    })
 
+
+    //-----------Order Related API----------------
+    // Get all orders with optional filtering and pagination
+    app.get('/orders', async (req, res) => {
       try {
+        const { page = 1, limit = 40, status, search } = req.query;
+        const skip = (page - 1) * limit;
+
+        // Build filter object
+        let filter = {};
+
+        // Status filter
+        if (status && status !== 'all') {
+          if (status === 'paid') {
+            filter.paidStatus = true;
+          } else if (status === 'unpaid') {
+            filter.paidStatus = false;
+          }
+        }
+
+        // Search filter
+        if (search) {
+          filter.$or = [
+            { 'product.title': { $regex: search, $options: 'i' } },
+            { _id: { $regex: search, $options: 'i' } },
+            { transjectionId: { $regex: search, $options: 'i' } }
+          ];
+        }
+
         const result = await oderCollection
-          .find({ userEmail: email })
+          .find(filter)
+          .sort({ _id: -1 }) // Sort by most recent first
+          .skip(skip)
+          .limit(parseInt(limit))
           .toArray();
-        res.send(result);
-      } catch (err) {
-        console.error(err);
-        res.status(500).send({ message: "Failed to fetch cart items" });
+
+        // Get total count for pagination
+        const total = await oderCollection.countDocuments(filter);
+
+        res.send({
+          orders: result,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit),
+            totalOrders: total,
+            hasNext: page < Math.ceil(total / limit),
+            hasPrev: page > 1
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).send('Internal server error');
+      }
+    });
+
+    // Get single order by ID
+    app.get('/orders/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send('Invalid order ID');
+        }
+
+        const order = await oderCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!order) {
+          return res.status(404).send('Order not found');
+        }
+
+        res.send(order);
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        res.status(500).send('Internal server error');
+      }
+    });
+
+    // Update order status (paid/unpaid)
+    app.patch('/orders/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { paidStatus } = req.body;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send('Invalid order ID');
+        }
+
+        if (typeof paidStatus !== 'boolean') {
+          return res.status(400).send('paidStatus must be a boolean');
+        }
+
+        const result = await oderCollection.findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $set: { paidStatus } },
+          { returnDocument: 'after' }
+        );
+
+        if (!result.value) {
+          return res.status(404).send('Order not found');
+        }
+
+        res.send(result.value);
+      } catch (error) {
+        console.error('Error updating order:', error);
+        res.status(500).send('Internal server error');
+      }
+    });
+
+    // Delete an order
+    app.delete('/orders/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send('Invalid order ID');
+        }
+
+        const result = await oderCollection.findOneAndDelete({ _id: new ObjectId(id) });
+
+        if (!result.value) {
+          return res.status(404).send('Order not found');
+        }
+
+        res.send({ message: 'Order deleted successfully', deletedOrder: result.value });
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        res.status(500).send('Internal server error');
+      }
+    });
+
+    // Get orders statistics
+    app.get('/orders-stats', async (req, res) => {
+      try {
+        const totalOrders = await oderCollection.countDocuments();
+        const paidOrders = await oderCollection.countDocuments({ paidStatus: true });
+        const unpaidOrders = await oderCollection.countDocuments({ paidStatus: false });
+
+        // Get total revenue from paid orders
+        const revenueResult = await oderCollection.aggregate([
+          { $match: { paidStatus: true } },
+          {
+            $group: {
+              _id: null,
+              totalRevenue: {
+                $sum: {
+                  $multiply: [
+                    { $toDouble: '$product.price' },
+                    { $toInt: '$product.quantity' }
+                  ]
+                }
+              }
+            }
+          }
+        ]).toArray();
+
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+
+        res.send({
+          totalOrders,
+          paidOrders,
+          unpaidOrders,
+          totalRevenue: Math.round(totalRevenue * 100) / 100 // Round to 2 decimal places
+        });
+      } catch (error) {
+        console.error('Error fetching order statistics:', error);
+        res.status(500).send('Internal server error');
       }
     });
 
 
-    // ......ADD TO CART.....
+    //------------ CART Related API---------------
 
     app.post("/cart", async (req, res) => {
       const items = req.body;
@@ -546,6 +688,92 @@ async function run() {
           message: 'Failed to update profile',
           error: error.message
         });
+      }
+    });
+
+
+    // Get admin dashboard statistics
+    app.get('/admin-stats', async (req, res) => {
+      try {
+        // Get total orders
+        const totalOrders = await orderCollection.countDocuments();
+
+        // Get total revenue (sum of all order amounts)
+        const revenueResult = await orderCollection.aggregate([
+          { $match: { paidStatus: true } },
+          {
+            $group: {
+              _id: null,
+              totalRevenue: {
+                $sum: {
+                  $multiply: [
+                    { $toDouble: '$product.price' },
+                    { $toInt: '$product.quantity' }
+                  ]
+                }
+              }
+            }
+          }
+        ]).toArray();
+
+        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+
+        // Get total products
+        const totalProducts = await productCollection.countDocuments();
+
+        // Get total users
+        const totalUsers = await userCollection.countDocuments();
+
+        // Get pending orders
+        const pendingOrders = await orderCollection.countDocuments({
+          paidStatus: false
+        });
+
+        // Get completed orders
+        const completedOrders = await orderCollection.countDocuments({
+          paidStatus: true
+        });
+
+        res.send({
+          totalOrders,
+          totalRevenue: Math.round(totalRevenue * 100) / 100,
+          totalProducts,
+          totalUsers,
+          pendingOrders,
+          completedOrders
+        });
+      } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        res.status(500).send('Internal server error');
+      }
+    });
+
+    // Get recent orders
+    app.get('/recent-orders', async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit) || 5;
+
+        const orders = await orderCollection
+          .find()
+          .sort({ _id: -1 })
+          .limit(limit)
+          .toArray();
+
+        // Format orders with customer information if available
+        const formattedOrders = orders.map(order => ({
+          _id: order._id,
+          customerName: order.customer?.name || 'Guest Customer',
+          customerEmail: order.customer?.email || 'No email',
+          orderDate: order.orderDate || new Date(),
+          totalAmount: order.product ?
+            (parseFloat(order.product.price) * parseInt(order.product.quantity)) : 0,
+          status: order.paidStatus ? 'completed' : 'processing'
+        }));
+
+        res.send(formattedOrders);
+      } catch (error) {
+        console.error('Error fetching recent orders:', error);
+        res.status(500).send('Internal server error');
       }
     });
 
