@@ -405,6 +405,52 @@ async function run() {
       }
     });
 
+
+
+// 1️⃣ GET /orders?search=&status=&page=&limit=
+app.get("/orders", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const status = req.query.status;
+    const search = req.query.search || "";
+
+    const filter = {};
+
+    if (status === "paid") filter.paidStatus = true;
+    else if (status === "unpaid") filter.paidStatus = false;
+
+    if (search) {
+      filter.$or = [
+        { "product.title": { $regex: search, $options: "i" } },
+        { _id: { $regex: search, $options: "i" } },
+        { transjectionId: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const totalOrders = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalOrders / limit);
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      orders,
+      pagination: { totalOrders, totalPages, currentPage: page }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+
+
+
+
+
+
     // ......ADD TO CART.....
 
     app.post("/cart", async (req, res) => {
@@ -559,6 +605,61 @@ async function run() {
         });
       }
     });
+   
+
+    // .............Admin-Stats..............!
+
+    app.get("/admin/stats",async (req,res)=>{
+       try {
+ 
+    const totalOrders = await oderCollection.countDocuments();
+
+  
+    const totalRevenueAgg = await oderCollection.aggregate([
+      { 
+        $group:{
+           _id: null,
+          total: { $sum: "$totalPrice" } } }
+    ]).toArray();
+    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+   
+    const totalProducts = await productsCollection.countDocuments();
+
+   
+    const totalUsers = await usersCollection.countDocuments();
+
+    // Pending Orders
+    const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
+
+    // Completed Orders
+    const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+
+    res.json({
+      totalOrders,
+      totalRevenue,
+      totalProducts,
+      totalUsers,
+      pendingOrders,
+      completedOrders
+    });
+  } catch (err) {
+    console.error("Error fetching admin stats:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+    })
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
