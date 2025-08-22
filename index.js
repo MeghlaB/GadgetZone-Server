@@ -289,8 +289,6 @@ async function run() {
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString()
 
-
-
     app.post('/order', async (req, res) => {
       const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
 
@@ -335,7 +333,7 @@ async function run() {
           product, paidStatus: false, tranjectionId: tran_id
         }
         const result = oderCollection.insertOne(finalOrder)
-
+        
       });
 
     })
@@ -360,7 +358,7 @@ async function run() {
           }
         }
       )
-      console.log(result)
+
       if (result.modifiedCount > 0) {
         res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
       }
@@ -380,6 +378,7 @@ async function run() {
 
 
     //-----------Order Related API----------------
+
     // Get all orders with optional filtering and pagination
     app.get('/orders', async (req, res) => {
       try {
