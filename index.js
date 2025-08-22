@@ -292,7 +292,7 @@ async function run() {
         currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
         success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
-        fail_url: `https://gadgetzone-server.onrender.com"/payment/fail/${tran_id}`,
+        fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -303,9 +303,9 @@ async function run() {
         cus_email: "customer@example.com",
         cus_add1: order?.address,
         cus_add2: "Dhaka",
-        cus_city: "Dhaka",
-        cus_state: "Dhaka",
-        cus_postcode: "1000",
+        cus_city: order?.city,
+        cus_state: order?.street,
+        cus_postcode: order?.postalCode || "",
         cus_country: "Bangladesh",
         cus_phone: order?.phone,
         cus_fax: "01711111111",
@@ -315,7 +315,7 @@ async function run() {
         ship_city: "Dhaka",
         ship_state: "Dhaka",
         ship_postcode: 1000,
-        ship_country: "Bangladesh",
+        ship_country: order?.country,
       };
 
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
@@ -331,12 +331,12 @@ console.log(GatewayPageURL)
           customerName: order?.customerName,
           customerEmail: order?.customerEmail,
           userEmail: order?.userEmail,
-          shippingAddress: {
+         
             street: order?.street,
             city: order?.city,
             postalCode: order?.postalCode || "",
             country: order?.country,
-          },
+        
           phone: req.body.phone,
           orderDate: new Date().toISOString(),
           paidStatus: false,
@@ -376,7 +376,7 @@ console.log(GatewayPageURL)
       //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
       // }
       if (result.deletedCount) {
-        res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://oryontech.web.app/fail/${req.params.tranId}`)
 
       }
     })
