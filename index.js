@@ -333,7 +333,7 @@ async function run() {
           product, paidStatus: false, tranjectionId: tran_id
         }
         const result = oderCollection.insertOne(finalOrder)
-        
+
       });
 
     })
@@ -575,7 +575,7 @@ async function run() {
     });
 
     // delete cart product
-    app.delete("/deleteCart/:id", async (req, res) => {
+    app.delete("/carts/:id", async (req, res) => {
       const id = req.params.id;
 
       if (!id) {
@@ -583,6 +583,11 @@ async function run() {
       }
 
       try {
+        // Verify the ID format is valid
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ acknowledged: false, message: "Invalid ID format" });
+        }
+
         const result = await cartCollection.deleteOne({ _id: new ObjectId(id) });
 
         if (result.deletedCount === 1) {
@@ -596,6 +601,35 @@ async function run() {
       }
     });
 
+    // Clear all cart products for a specific user
+    app.delete("/carts/clear/:email", async (req, res) => {
+      const email = req.params.email;
+
+      if (!email) {
+        return res.status(400).send({ acknowledged: false, message: "Missing email parameter" });
+      }
+
+      try {
+        // Verify the email is valid
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return res.status(400).send({ acknowledged: false, message: "Invalid email format" });
+        }
+
+        const result = await cartCollection.deleteMany({ email: email });
+
+        if (result.deletedCount > 0) {
+          res.send({
+            acknowledged: true,
+            message: `Successfully cleared ${result.deletedCount} item${result.deletedCount !== 1 ? 's' : ''} from cart`
+          });
+        } else {
+          res.status(404).send({ acknowledged: false, message: "No items found to clear" });
+        }
+      } catch (error) {
+        console.error("Error clearing cart items:", error);
+        res.status(500).send({ acknowledged: false, message: "Server error while clearing cart" });
+      }
+    });
 
     //get all cart products
     app.get("/all-carts", async (req, res) => {
