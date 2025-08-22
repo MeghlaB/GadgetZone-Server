@@ -283,17 +283,8 @@ async function run() {
 
     //..............PAYMENT GATEWAY INT............
     const tran_id = new ObjectId().toString();
-
-
-    app.post("/order", async (req, res) => {
-      const product = await productsCollection.findOne({
-        _id: new ObjectId(req.body.productId),
-      });
-
     app.post('/order', async (req, res) => {
       const product = await productsCollection.findOne({ _id: new ObjectId(req.body.productId) })
-
-
       const order = req.body;
       console.log(order);
       const data = {
@@ -301,7 +292,7 @@ async function run() {
         currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
         success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
-        fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
+        fail_url: `https://gadgetzone-server.onrender.com"/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -332,8 +323,8 @@ async function run() {
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL;
         res.send({ url: GatewayPageURL });
+console.log(GatewayPageURL)
         const finalOrder = {
-
           product,
           quantity: order?.quantity,
           totalPrice: product?.price * req.body.quantity,
@@ -352,31 +343,12 @@ async function run() {
           tranjectionId: tran_id,
         };
         const result = oderCollection.insertOne(finalOrder);
-        console.log(result);
-
+        console.log(result)
        
-        }
-       
-
-
-      );
+        });
     });
 
-
-
-    // app.get('/orders', async (req, res) => {
-    //   try {
-    //     const result = await oderCollection.find().toArray()
-    //     res.send(result)
-    //   }
-    //   catch (error) {
-    //     res.status(404).send('Orders data not found')
-    //   }
-    // })
-
     app.post('/payment/success/:tranId', async (req, res) => {
-
-
       const result = await oderCollection.updateOne(
         { tranjectionId: req.params.tranId },
         {
@@ -398,9 +370,6 @@ async function run() {
     });
 
 
-
- 
-
     app.post('/payment/fail/:tranId', async (req, res) => {
       const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
       // if(result.deletedCount){
@@ -411,10 +380,6 @@ async function run() {
 
       }
     })
-
-
-  
-    });
 
 
     app.get("/orders", async (req, res) => {
