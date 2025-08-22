@@ -300,8 +300,8 @@ async function run() {
         total_amount: product?.price,
         currency: order?.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://gadgetzone-server.onrender.com/payment/success/${tran_id}`,
+        fail_url: `https://gadgetzone-server.onrender.com/payment/fail/${tran_id}`,
         cancel_url: "http://localhost:3030/cancel",
         ipn_url: "http://localhost:3030/ipn",
         shipping_method: "Courier",
@@ -354,18 +354,15 @@ async function run() {
         const result = oderCollection.insertOne(finalOrder);
         console.log(result);
 
-          product, paidStatus: false, tranjectionId: tran_id
+       
         }
-        const result = oderCollection.insertOne(finalOrder)
+       
 
 
-      });
+      );
     });
 
 
-    app.post("/payment/success/:tranId", async (req, res) => {
-
-    })
 
     // app.get('/orders', async (req, res) => {
     //   try {
@@ -392,27 +389,17 @@ async function run() {
       console.log(result);
       if (result.modifiedCount > 0) {
         res.redirect(
-          `http://localhost:5173/payment/success/${req.params.tranId}`
+          `https://oryontech.web.app/payment/success/${req.params.tranId}`
         );
 
-      )
-
-      if (result.modifiedCount > 0) {
-        res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
-
       }
+
+     
     });
 
 
-    app.post("/payment/fail/:tranId", async (req, res) => {
-      const result = await oderCollection.deleteOne({
-        tranjectionId: req.params.tranId,
-      });
-      // if(result.deletedCount){
-      //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
-      // }
 
-    })
+ 
 
     app.post('/payment/fail/:tranId', async (req, res) => {
       const result = await oderCollection.deleteOne({ tranjectionId: req.params.tranId })
@@ -420,15 +407,13 @@ async function run() {
       //   res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
       // }
       if (result.deletedCount) {
-        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+        res.redirect(`https://oryontech.web.app/payment/fail/${req.params.tranId}`)
 
       }
     })
 
 
-      if (result.deletedCount) {
-        res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`);
-      }
+  
     });
 
 
@@ -437,8 +422,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/orders", async (req, res) => {
-      const email = req.query.email;
+ 
 
     //-----------Order Related API----------------
 
@@ -495,6 +479,53 @@ async function run() {
         res.status(500).send('Internal server error');
       }
     });
+
+
+
+
+// 1️⃣ GET /orders?search=&status=&page=&limit=
+app.get("/orders", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const status = req.query.status;
+    const search = req.query.search || "";
+
+    const filter = {};
+
+    if (status === "paid") filter.paidStatus = true;
+    else if (status === "unpaid") filter.paidStatus = false;
+
+    if (search) {
+      filter.$or = [
+        { "product.title": { $regex: search, $options: "i" } },
+        { _id: { $regex: search, $options: "i" } },
+        { transjectionId: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const totalOrders = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalOrders / limit);
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      orders,
+      pagination: { totalOrders, totalPages, currentPage: page }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+
+
+
+
+
 
 
     // ......ADD TO CART.....
@@ -664,9 +695,7 @@ async function run() {
 
       try {
 
-        const result = await cartCollection.deleteOne({
-          _id: new ObjectId(id),
-        });
+       
 
         // Verify the ID format is valid
         if (!ObjectId.isValid(id)) {
@@ -812,16 +841,71 @@ async function run() {
         });
       }
     });
+   
+
+    // .............Admin-Stats..............!
+
+    app.get("/admin/stats",async (req,res)=>{
+       try {
+ 
+    const totalOrders = await oderCollection.countDocuments();
+
+  
+    const totalRevenueAgg = await oderCollection.aggregate([
+      { 
+        $group:{
+           _id: null,
+          total: { $sum: "$totalPrice" } } }
+    ]).toArray();
+    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+   
+    const totalProducts = await productsCollection.countDocuments();
+
+   
+    const totalUsers = await usersCollection.countDocuments();
+
+    // Pending Orders
+    const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
+
+    // Completed Orders
+    const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+
+    res.json({
+      totalOrders,
+      totalRevenue,
+      totalProducts,
+      totalUsers,
+      pendingOrders,
+      completedOrders
+    });
+  } catch (err) {
+    console.error("Error fetching admin stats:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+    })
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // Get admin dashboard statistics
     app.get('/admin-stats', async (req, res) => {
       try {
         // Get total orders
-        const totalOrders = await orderCollection.countDocuments();
+        const totalOrders = await oderCollection.countDocuments();
 
         // Get total revenue (sum of all order amounts)
-        const revenueResult = await orderCollection.aggregate([
+        const revenueResult = await oderCollection.aggregate([
           { $match: { paidStatus: true } },
           {
             $group: {
@@ -841,18 +925,18 @@ async function run() {
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 
         // Get total products
-        const totalProducts = await productCollection.countDocuments();
+        const totalProducts = await productsCollection.countDocuments();
 
         // Get total users
-        const totalUsers = await userCollection.countDocuments();
+        const totalUsers = await usersCollection.countDocuments();
 
         // Get pending orders
-        const pendingOrders = await orderCollection.countDocuments({
+        const pendingOrders = await oderCollection.countDocuments({
           paidStatus: false
         });
 
         // Get completed orders
-        const completedOrders = await orderCollection.countDocuments({
+        const completedOrders = await oderCollection.countDocuments({
           paidStatus: true
         });
 
@@ -875,7 +959,7 @@ async function run() {
       try {
         const limit = parseInt(req.query.limit) || 5;
 
-        const orders = await orderCollection
+        const orders = await oderCollection
           .find()
           .sort({ _id: -1 })
           .limit(limit)
