@@ -323,7 +323,7 @@ async function run() {
         // Redirect the user to payment gateway
         let GatewayPageURL = apiResponse.GatewayPageURL;
         res.send({ url: GatewayPageURL });
-        console.log(GatewayPageURL)
+console.log(GatewayPageURL)
         const finalOrder = {
           product,
           quantity: order?.quantity,
@@ -345,7 +345,7 @@ async function run() {
         const result = oderCollection.insertOne(finalOrder);
         console.log(result)
 
-      });
+        });
     });
 
     app.post('/payment/success/:tranId', async (req, res) => {
@@ -366,7 +366,6 @@ async function run() {
 
       }
 
-
     });
 
 
@@ -386,7 +385,6 @@ async function run() {
       const result = await oderCollection.find().toArray();
       res.send(result);
     });
-
 
 
     //-----------Order Related API----------------
@@ -447,43 +445,50 @@ async function run() {
 
 
 
-    // 1 GET /orders?search=&status=&page=&limit=
-    app.get("/orders", async (req, res) => {
-      try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 40;
-        const status = req.query.status;
-        const search = req.query.search || "";
 
-        const filter = {};
+// 1️⃣ GET /orders?search=&status=&page=&limit=
+app.get("/orders", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const status = req.query.status;
+    const search = req.query.search || "";
 
-        if (status === "paid") filter.paidStatus = true;
-        else if (status === "unpaid") filter.paidStatus = false;
+    const filter = {};
 
-        if (search) {
-          filter.$or = [
-            { "product.title": { $regex: search, $options: "i" } },
-            { _id: { $regex: search, $options: "i" } },
-            { transjectionId: { $regex: search, $options: "i" } }
-          ];
-        }
+    if (status === "paid") filter.paidStatus = true;
+    else if (status === "unpaid") filter.paidStatus = false;
 
-        const totalOrders = await Order.countDocuments(filter);
-        const totalPages = Math.ceil(totalOrders / limit);
-        const orders = await Order.find(filter)
-          .sort({ createdAt: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit);
+    if (search) {
+      filter.$or = [
+        { "product.title": { $regex: search, $options: "i" } },
+        { _id: { $regex: search, $options: "i" } },
+        { transjectionId: { $regex: search, $options: "i" } }
+      ];
+    }
 
-        res.json({
-          orders,
-          pagination: { totalOrders, totalPages, currentPage: page }
-        });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server Error" });
-      }
+    const totalOrders = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalOrders / limit);
+    const orders = await Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.json({
+      orders,
+      pagination: { totalOrders, totalPages, currentPage: page }
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+
+
+
+
+
 
 
     // ......ADD TO CART.....
@@ -653,7 +658,6 @@ async function run() {
       try {
 
 
-
         // Verify the ID format is valid
         if (!ObjectId.isValid(id)) {
           return res.status(400).send({ acknowledged: false, message: "Invalid ID format" });
@@ -797,6 +801,63 @@ async function run() {
         });
       }
     });
+
+
+    // .............Admin-Stats..............!
+
+    app.get("/admin/stats", async (req, res) => {
+      try {
+
+        const totalOrders = await oderCollection.countDocuments();
+
+
+        const totalRevenueAgg = await oderCollection.aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$totalPrice" }
+            }
+          }
+        ]).toArray();
+        const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+
+        const totalProducts = await productsCollection.countDocuments();
+
+
+        const totalUsers = await usersCollection.countDocuments();
+
+        // Pending Orders
+        const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
+
+        // Completed Orders
+        const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+
+        res.json({
+          totalOrders,
+          totalRevenue,
+          totalProducts,
+          totalUsers,
+          pendingOrders,
+          completedOrders
+        });
+      } catch (err) {
+        console.error("Error fetching admin stats:", err);
+        res.status(500).json({ error: "Server error" });
+      }
+    })
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // .............Admin-Stats..............!
