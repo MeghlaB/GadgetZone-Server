@@ -344,7 +344,7 @@ console.log(GatewayPageURL)
         };
         const result = oderCollection.insertOne(finalOrder);
         console.log(result)
-       
+
         });
     });
 
@@ -366,7 +366,6 @@ console.log(GatewayPageURL)
 
       }
 
-     
     });
 
 
@@ -387,7 +386,6 @@ console.log(GatewayPageURL)
       res.send(result);
     });
 
- 
 
     //-----------Order Related API----------------
 
@@ -612,7 +610,6 @@ app.get("/orders", async (req, res) => {
 
     //------------ CART Related API---------------
 
-
     app.post("/cart", async (req, res) => {
       const items = req.body;
 
@@ -660,7 +657,6 @@ app.get("/orders", async (req, res) => {
 
       try {
 
-       
 
         // Verify the ID format is valid
         if (!ObjectId.isValid(id)) {
@@ -714,7 +710,6 @@ app.get("/orders", async (req, res) => {
         res.status(500).send({ acknowledged: false, message: "Server error while clearing cart" });
       }
     });
-
 
     //get all cart products
     app.get("/all-carts", async (req, res) => {
@@ -806,48 +801,50 @@ app.get("/orders", async (req, res) => {
         });
       }
     });
-   
+
 
     // .............Admin-Stats..............!
 
-    app.get("/admin/stats",async (req,res)=>{
-       try {
- 
-    const totalOrders = await oderCollection.countDocuments();
+    app.get("/admin/stats", async (req, res) => {
+      try {
 
-  
-    const totalRevenueAgg = await oderCollection.aggregate([
-      { 
-        $group:{
-           _id: null,
-          total: { $sum: "$totalPrice" } } }
-    ]).toArray();
-    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+        const totalOrders = await oderCollection.countDocuments();
 
-   
-    const totalProducts = await productsCollection.countDocuments();
 
-   
-    const totalUsers = await usersCollection.countDocuments();
+        const totalRevenueAgg = await oderCollection.aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$totalPrice" }
+            }
+          }
+        ]).toArray();
+        const totalRevenue = totalRevenueAgg[0]?.total || 0;
 
-    // Pending Orders
-    const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
 
-    // Completed Orders
-    const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+        const totalProducts = await productsCollection.countDocuments();
 
-    res.json({
-      totalOrders,
-      totalRevenue,
-      totalProducts,
-      totalUsers,
-      pendingOrders,
-      completedOrders
-    });
-  } catch (err) {
-    console.error("Error fetching admin stats:", err);
-    res.status(500).json({ error: "Server error" });
-  }
+
+        const totalUsers = await usersCollection.countDocuments();
+
+        // Pending Orders
+        const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
+
+        // Completed Orders
+        const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+
+        res.json({
+          totalOrders,
+          totalRevenue,
+          totalProducts,
+          totalUsers,
+          pendingOrders,
+          completedOrders
+        });
+      } catch (err) {
+        console.error("Error fetching admin stats:", err);
+        res.status(500).json({ error: "Server error" });
+      }
     })
 
 
@@ -862,6 +859,50 @@ app.get("/orders", async (req, res) => {
 
 
 
+
+    // .............Admin-Stats..............!
+
+    app.get("/admin/stats", async (req, res) => {
+      try {
+
+        const totalOrders = await oderCollection.countDocuments();
+
+
+        const totalRevenueAgg = await oderCollection.aggregate([
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$totalPrice" }
+            }
+          }
+        ]).toArray();
+        const totalRevenue = totalRevenueAgg[0]?.total || 0;
+
+
+        const totalProducts = await productsCollection.countDocuments();
+
+
+        const totalUsers = await usersCollection.countDocuments();
+
+        // Pending Orders
+        const pendingOrders = await oderCollection.countDocuments({ status: "pending" });
+
+        // Completed Orders
+        const completedOrders = await oderCollection.countDocuments({ status: "completed" });
+
+        res.json({
+          totalOrders,
+          totalRevenue,
+          totalProducts,
+          totalUsers,
+          pendingOrders,
+          completedOrders
+        });
+      } catch (err) {
+        console.error("Error fetching admin stats:", err);
+        res.status(500).json({ error: "Server error" });
+      }
+    })
 
     // Get admin dashboard statistics
     app.get('/admin-stats', async (req, res) => {
